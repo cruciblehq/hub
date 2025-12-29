@@ -34,4 +34,4 @@ PORT=8080 DB_PATH=./hub.db ARCHIVE_ROOT=./archives ./hub
 
 ## License
 
-See LICENSE file.
+All rights reserved.
