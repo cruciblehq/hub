@@ -1,0 +1,8 @@
+version: 1
+
+resource:
+  type: service
+  version: 0.1.0
+
+build:
+  image: dist/image.tar

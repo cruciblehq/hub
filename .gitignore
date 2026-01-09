@@ -1,9 +1,10 @@
 # Binaries
-hub
 *.exe
 *.dll
 *.so
 *.dylib
+dist/
+/hub
 
 # Test binaries
 *.test

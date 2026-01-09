@@ -1,5 +1,7 @@
 github.com/BurntSushi/toml v1.6.0 h1:dRaEfpa2VI55EwlIW72hMRHdWouJeRF7TPYhI+AUQjk=
 github.com/BurntSushi/toml v1.6.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/cruciblehq/protocol v0.0.0-20260109003554-00ae228e644a h1:hpnNjUf9vX08Byw2l/vmM6d4WDGLC1f5aJJ21lQvLFs=
+github.com/cruciblehq/protocol v0.0.0-20260109003554-00ae228e644a/go.mod h1:1RDftIOPe31ih9Ob5Nj4V3kk3dBK7c+pE/EOWxFMeZw=
 github.com/dustin/go-humanize v1.0.1 h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=
 github.com/dustin/go-humanize v1.0.1/go.mod h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=
 github.com/go-viper/mapstructure/v2 v2.4.0 h1:EBsztssimR/CONLSZZ04E8qAkxNYq4Qp9LvH92wZUgs=

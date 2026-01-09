@@ -3,7 +3,7 @@ module github.com/cruciblehq/hub
 go 1.25.1
 
 require (
-	github.com/cruciblehq/protocol v0.0.0-20251229184619-9bfd90039431
+	github.com/cruciblehq/protocol v0.0.0-20260109003554-00ae228e644a
 	modernc.org/sqlite v1.41.0
 )
 
@@ -23,5 +23,3 @@ require (
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
 )
-
-replace github.com/cruciblehq/protocol => ../protocol
