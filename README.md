@@ -3,28 +3,17 @@
 Registry server for managing and distributing Crucible resources with version
 control and channel management.
 
-## Overview
-
-Hub provides a hierarchical registry API for managing:
-- **Namespaces**: Top-level organizational units
-- **Resources**: Named items within namespaces (widgets, services, etc.)
-- **Versions**: Specific releases of resources with archives
-- **Channels**: Named pointers to versions (e.g., `stable`, `latest`)
-
 ## Development
 
-### Running Locally
+### Building the Docker Image
 
 ```bash
-# Build the binary
-go build -o hub ./cmd/hub
-
-# Run with default settings
-./hub
-
-# Run with custom configuration
-PORT=8080 DB_PATH=./hub.db ARCHIVE_ROOT=./archives ./hub
+# Build multi-platform OCI image
+./scripts/build.sh
 ```
+
+The build script creates a universal Docker image supporting both `linux/amd64`
+and `linux/arm64`, outputting to `dist/image.tar` in OCI format.
 
 ### Environment Variables
 
