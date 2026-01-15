@@ -3,8 +3,11 @@
 *.dll
 *.so
 *.dylib
-dist/
+*.tar.zst
+*.tar.gz
+/dist
 /hub
+/build
 
 # Test binaries
 *.test

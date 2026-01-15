@@ -5,4 +5,4 @@ resource:
   version: 0.1.0
 
 build:
-  image: dist/image.tar
+  image: build/image.tar
