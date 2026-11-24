@@ -1,0 +1,29 @@
+version: 0
+
+resource:
+  type: service
+  name: crucible/hub
+  version: 0.1.0
+
+entrypoint: ["/app/hub"]
+
+stages:
+  - name: builder
+    from: crucible/runtime-go 0.2.0
+    steps:
+      - workdir: /app
+      - copy: go.mod /app/go.mod
+      - copy: go.sum /app/go.sum
+      - run: go mod download
+      - copy: cmd /app/cmd
+      - copy: internal /app/internal
+      - run: CGO_ENABLED=0 go build -o hub ./cmd/hub
+
+  - from: crucible/runtime 0.1.0
+    steps:
+      - copy: builder:/app/hub /app/hub
+      - run: mkdir -p /data/archives
+      - env:
+          PORT: "8080"
+          DB_PATH: /data/hub.db
+          ARCHIVE_ROOT: /data/archives
