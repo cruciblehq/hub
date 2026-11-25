@@ -133,3 +133,20 @@ func TestUpdateVersionPublicBelowPublicOnSameLine(t *testing.T) {
 	_, err := s.UpdateVersion(ctx, "crucible", "machine-default", "0.2.1", registry.VersionInfo{String: "0.2.1", Public: true})
 	assertCode(t, err, registry.ErrorCodeVersionSuperseded)
 }
+
+func TestDeleteVersionPublicIsRefused(t *testing.T) {
+	s, _, ctx := newStoreForTest(t)
+	pushVersion(t, s, ctx, "0.2.0", true)
+
+	err := s.DeleteVersion(ctx, "crucible", "machine-default", "0.2.0")
+	assertCode(t, err, registry.ErrorCodeVersionPublic)
+}
+
+func TestDeleteVersionPrivate(t *testing.T) {
+	s, _, ctx := newStoreForTest(t)
+	pushVersion(t, s, ctx, "0.2.0", false)
+
+	if err := s.DeleteVersion(ctx, "crucible", "machine-default", "0.2.0"); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+}

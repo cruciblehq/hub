@@ -1,7 +1,7 @@
 # Crucible Hub
 
 Registry server for managing and distributing Crucible resources with version
-control and channel management.
+control.
 
 ## Development
 

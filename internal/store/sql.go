@@ -17,8 +17,8 @@ func mustReadSQL(path string) string {
 // Schema definition for creating all registry tables.
 //
 // All foreign key constraints use ON DELETE RESTRICT to prevent accidental
-// data loss. Deletion must be done bottom-up (channels first, then versions,
-// then resources, then namespaces).
+// data loss. Deletion must be done bottom-up (versions first, then resources,
+// then namespaces).
 //
 // Archive data is stored within the versions table as nullable columns (digest,
 // size, path), populated when an archive is uploaded via UploadArchive.
@@ -46,13 +46,5 @@ var (
 	sqlVersionsList   = mustReadSQL("sql/versions/list.sql")   // List versions for resource
 	sqlVersionsUpdate = mustReadSQL("sql/versions/update.sql") // Update version metadata
 	sqlVersionsUpload = mustReadSQL("sql/versions/upload.sql") // Update version with archive metadata
-	sqlVersionsDelete = mustReadSQL("sql/versions/delete.sql") // Delete version (requires no channels)
-)
-
-var (
-	sqlChannelsInsert = mustReadSQL("sql/channels/insert.sql") // Insert new channel
-	sqlChannelsGet    = mustReadSQL("sql/channels/get.sql")    // Get channel with version details
-	sqlChannelsList   = mustReadSQL("sql/channels/list.sql")   // List channels for resource
-	sqlChannelsUpdate = mustReadSQL("sql/channels/update.sql") // Update channel metadata
-	sqlChannelsDelete = mustReadSQL("sql/channels/delete.sql") // Delete channel
+	sqlVersionsDelete = mustReadSQL("sql/versions/delete.sql") // Delete version
 )

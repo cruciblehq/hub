@@ -1,6 +1,6 @@
 // Package store implements the [registry.Registry] interface using SQL databases.
 //
-// Provides persistent storage of namespaces, resources, versions, channels, and
+// Provides persistent storage of namespaces, resources, versions, and
 // archives. Supports any SQL database with a compatible driver (SQLite,
 // PostgreSQL, MySQL, etc.). Uses SQL for ACID transactions and referential
 // integrity. Thread-safe for concurrent access.
@@ -23,7 +23,7 @@ const (
 	errMsgCreateNamespace       = "unable to create namespace due to internal error"
 	errMsgRetrieveNamespace     = "unable to retrieve namespace information"
 	errMsgSaveNamespaceChanges  = "unable to save namespace changes"
-	errMsgDeleteNamespace       = "unable to delete namespace - it may contain resources"
+	errMsgDeleteNamespace       = "unable to delete namespace, it may contain resources"
 	errMsgRetrieveNamespaceList = "unable to retrieve namespace list"
 	errMsgNamespaceNotFound     = "namespace not found"
 	errMsgNamespaceExists       = "namespace already exists"
@@ -31,7 +31,7 @@ const (
 	errMsgCreateResource       = "unable to create resource due to internal error"
 	errMsgRetrieveResource     = "unable to retrieve resource information"
 	errMsgSaveResourceChanges  = "unable to save resource changes"
-	errMsgDeleteResource       = "unable to delete resource - it may contain versions or channels"
+	errMsgDeleteResource       = "unable to delete resource, it may contain versions"
 	errMsgRetrieveResourceList = "unable to retrieve resource list for namespace"
 	errMsgResourceNotFound     = "resource not found"
 	errMsgResourceExists       = "resource already exists"
@@ -39,7 +39,7 @@ const (
 	errMsgCreateVersion        = "unable to create version due to internal error"
 	errMsgRetrieveVersion      = "unable to retrieve version information"
 	errMsgSaveVersionChanges   = "unable to save version changes"
-	errMsgDeleteVersion        = "unable to delete version - it may be referenced by channels"
+	errMsgDeleteVersion        = "unable to delete version"
 	errMsgRetrieveVersionList  = "unable to retrieve version list for resource"
 	errMsgVersionNotFound      = "version not found"
 	errMsgVersionExists        = "version already exists"
@@ -52,19 +52,11 @@ const (
 	errMsgUpdateArchive     = "unable to update archive metadata"
 	errMsgAccessArchiveFile = "unable to access archive file - file may be missing or inaccessible"
 	errMsgArchiveNotFound   = "archive not found"
-
-	errMsgCreateChannel       = "unable to create channel - ensure the target version exists"
-	errMsgUpdateChannel       = "unable to update channel - ensure the target version exists"
-	errMsgRetrieveChannel     = "unable to retrieve channel information"
-	errMsgDeleteChannel       = "unable to delete channel"
-	errMsgRetrieveChannelList = "unable to retrieve channel list for resource"
-	errMsgChannelNotFound     = "channel not found"
-	errMsgChannelExists       = "channel already exists"
 )
 
 // Implements the [registry.Registry] interface using SQL databases.
 //
-// Provides persistent storage of namespaces, resources, versions, channels,
+// Provides persistent storage of namespaces, resources, versions,
 // and archives. Supports any SQL database with a compatible driver (SQLite,
 // PostgreSQL, MySQL, etc.). Uses SQL for ACID transactions and referential
 // integrity. Thread-safe for concurrent access. The store does not own
@@ -220,7 +212,7 @@ func (s *SQLStore) CreateResource(ctx context.Context, namespace string, info re
 	return res, nil
 }
 
-// Retrieves a resource with version and channel summaries.
+// Retrieves a resource with version summaries.
 func (s *SQLStore) ReadResource(ctx context.Context, namespace, resource string) (*registry.Resource, error) {
 	if err := registry.ValidateIdentifier(namespace, resource); err != nil {
 		return nil, &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
@@ -239,12 +231,6 @@ func (s *SQLStore) ReadResource(ctx context.Context, namespace, resource string)
 		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveVersionList, err, "namespace", namespace, "resource", resource)
 	}
 	res.Versions = versions
-
-	channels, err := s.listChannels(ctx, namespace, resource)
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveChannelList, err, "namespace", namespace, "resource", resource)
-	}
-	res.Channels = channels
 
 	return res, nil
 }
@@ -268,12 +254,6 @@ func (s *SQLStore) UpdateResource(ctx context.Context, namespace, resource strin
 		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveVersionList, err, "namespace", namespace, "resource", resource)
 	}
 	res.Versions = versions
-
-	channels, err := s.listChannels(ctx, namespace, resource)
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveChannelList, err, "namespace", namespace, "resource", resource)
-	}
-	res.Channels = channels
 
 	return res, nil
 }
@@ -455,6 +435,9 @@ func (s *SQLStore) DeleteVersion(ctx context.Context, namespace, resource, versi
 		}
 		return s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveVersion, err, "namespace", namespace, "resource", resource, "version", version)
 	}
+	if v.Public {
+		return &registry.Error{Code: registry.ErrorCodeVersionPublic, Message: errMsgVersionPublic}
+	}
 
 	if err := s.deleteVersion(ctx, namespace, resource, version); err != nil {
 		return s.logAndReturnError(registry.ErrorCodeInternalError, errMsgDeleteVersion, err, "namespace", namespace, "resource", resource, "version", version)
@@ -567,86 +550,4 @@ func (s *SQLStore) DownloadArchive(ctx context.Context, namespace, resource, ver
 	}
 
 	return file, nil
-}
-
-// Creates a new channel.
-func (s *SQLStore) CreateChannel(ctx context.Context, namespace, resource string, info registry.ChannelInfo) (*registry.Channel, error) {
-	if err := registry.ValidateChannelInfo(namespace, resource, info); err != nil {
-		return nil, &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
-	}
-
-	if err := s.insertChannel(ctx, namespace, resource, info); err != nil {
-		if _, checkErr := s.getChannel(ctx, namespace, resource, info.Name); checkErr == nil {
-			return nil, &registry.Error{Code: registry.ErrorCodeChannelExists, Message: errMsgChannelExists}
-		}
-
-		if _, checkErr := s.getResource(ctx, namespace, resource); checkErr == sql.ErrNoRows {
-			return nil, &registry.Error{Code: registry.ErrorCodeNotFound, Message: errMsgResourceNotFound}
-		}
-
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgCreateChannel, err, "namespace", namespace, "resource", resource, "channel", info.Name)
-	}
-
-	c, err := s.getChannel(ctx, namespace, resource, info.Name)
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveChannel, err, "namespace", namespace, "resource", resource, "channel", info.Name)
-	}
-	return c, nil
-}
-
-// Updates a channel's mutable metadata.
-func (s *SQLStore) UpdateChannel(ctx context.Context, namespace, resource, channel string, info registry.ChannelInfo) (*registry.Channel, error) {
-	if err := registry.ValidateChannelInfo(namespace, resource, info); err != nil {
-		return nil, &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
-	}
-
-	c, err := s.updateChannel(ctx, namespace, resource, info)
-	if err == sql.ErrNoRows {
-		return nil, &registry.Error{Code: registry.ErrorCodeNotFound, Message: errMsgChannelNotFound}
-	}
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgUpdateChannel, err, "namespace", namespace, "resource", resource, "channel", info.Name)
-	}
-	return c, nil
-}
-
-// Retrieves a channel with its version details.
-func (s *SQLStore) ReadChannel(ctx context.Context, namespace, resource, channel string) (*registry.Channel, error) {
-	if err := registry.ValidateChannelReference(namespace, resource, channel); err != nil {
-		return nil, &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
-	}
-
-	c, err := s.getChannel(ctx, namespace, resource, channel)
-	if err == sql.ErrNoRows {
-		return nil, &registry.Error{Code: registry.ErrorCodeNotFound, Message: errMsgChannelNotFound}
-	}
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveChannel, err, "namespace", namespace, "resource", resource, "channel", channel)
-	}
-	return c, nil
-}
-
-// Permanently deletes a channel.
-func (s *SQLStore) DeleteChannel(ctx context.Context, namespace, resource, channel string) error {
-	if err := registry.ValidateChannelReference(namespace, resource, channel); err != nil {
-		return &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
-	}
-
-	if err := s.deleteChannel(ctx, namespace, resource, channel); err != nil {
-		return s.logAndReturnError(registry.ErrorCodeInternalError, errMsgDeleteChannel, err, "namespace", namespace, "resource", resource, "channel", channel)
-	}
-	return nil
-}
-
-// Returns all channels for a resource.
-func (s *SQLStore) ListChannels(ctx context.Context, namespace, resource string) (*registry.ChannelList, error) {
-	if err := registry.ValidateIdentifier(namespace, resource); err != nil {
-		return nil, &registry.Error{Code: registry.ErrorCodeBadRequest, Message: err.Error()}
-	}
-
-	channels, err := s.listChannels(ctx, namespace, resource)
-	if err != nil {
-		return nil, s.logAndReturnError(registry.ErrorCodeInternalError, errMsgRetrieveChannelList, err, "namespace", namespace, "resource", resource)
-	}
-	return &registry.ChannelList{Channels: channels}, nil
 }

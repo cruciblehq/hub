@@ -10,8 +10,8 @@ import (
 // Implements HTTP endpoints for the registry API.
 //
 // The registry implements the API defined in the [registry.Registry] interface,
-// exposing endpoints for managing namespaces, resources, versions, and channels.
-// This handler routes incoming HTTP requests to the appropriate methods on the
+// exposing endpoints for managing namespaces, resources, and versions. This
+// handler routes incoming HTTP requests to the appropriate methods on the
 // underlying registry implementation.
 type Handler struct {
 	mux      *http.ServeMux
@@ -51,18 +51,24 @@ func NewHandler(reg registry.Registry) *Handler {
 	h.mux.HandleFunc(fmt.Sprintf("PUT %s", registry.PatternArchive), h.uploadArchive)
 	h.mux.HandleFunc(fmt.Sprintf("GET %s", registry.PatternArchive), h.downloadArchive)
 
-	// Channel routes
-	h.mux.HandleFunc(fmt.Sprintf("GET %s", registry.PatternChannelList), h.listChannels)
-	h.mux.HandleFunc(fmt.Sprintf("POST %s", registry.PatternChannelList), h.createChannel)
-	h.mux.HandleFunc(fmt.Sprintf("GET %s", registry.PatternChannel), h.readChannel)
-	h.mux.HandleFunc(fmt.Sprintf("PUT %s", registry.PatternChannel), h.updateChannel)
-	h.mux.HandleFunc(fmt.Sprintf("DELETE %s", registry.PatternChannel), h.deleteChannel)
-	h.mux.HandleFunc(fmt.Sprintf("GET %s", registry.PatternChannelArchive), h.downloadChannelArchive)
-
 	return h
 }
 
 // Serves HTTP requests by routing them to the appropriate handler methods.
+//
+// Requests without a valid credential are refused before routing.
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !h.authenticated(r) {
+		h.fail(w, r, registry.ErrorCodeUnauthorized, "the request has no valid credential", http.StatusUnauthorized)
+		return
+	}
 	h.mux.ServeHTTP(w, r)
+}
+
+// Whether the request carries a valid credential.
+//
+// Placeholder that accepts every request. Sentinel, Crucible's authentication
+// service, will check the bearer token here.
+func (h *Handler) authenticated(_ *http.Request) bool {
+	return true
 }

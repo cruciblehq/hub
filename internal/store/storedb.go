@@ -104,7 +104,6 @@ func (s *SQLStore) insertResource(ctx context.Context, namespace string, info re
 		Type:        info.Type,
 		Description: info.Description,
 		Versions:    []registry.VersionSummary{},
-		Channels:    []registry.ChannelSummary{},
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}, nil
@@ -113,7 +112,7 @@ func (s *SQLStore) insertResource(ctx context.Context, namespace string, info re
 // Queries a resource by namespace and name from the database.
 //
 // Returns sql.ErrNoRows if the resource does not exist. Returns the resource
-// without version and channel summaries on success.
+// without version summaries on success.
 func (s *SQLStore) getResource(ctx context.Context, namespace, resource string) (*registry.Resource, error) {
 	var res registry.Resource
 	var ns string
@@ -241,80 +240,8 @@ func (s *SQLStore) updateVersion(ctx context.Context, namespace, resource, versi
 // Executes a DELETE statement for a version.
 //
 // Returns the raw database error on failure without any translation or logging.
-// Foreign key constraints prevent deletion if the version is referenced by channels.
 func (s *SQLStore) deleteVersion(ctx context.Context, namespace, resource, version string) error {
 	_, err := s.db.ExecContext(ctx, sqlVersionsDelete, namespace, resource, version)
-	return err
-}
-
-// Executes an INSERT statement for a channel.
-//
-// Returns the raw database error on failure without any translation or logging.
-func (s *SQLStore) insertChannel(ctx context.Context, namespace, resource string, info registry.ChannelInfo) error {
-	now := time.Now().Unix()
-	_, err := s.db.ExecContext(ctx, sqlChannelsInsert, namespace, resource, info.Name, info.Description, info.Version, now, now)
-	return err
-}
-
-// Executes an UPDATE statement for a channel.
-//
-// Returns the updated channel on success, sql.ErrNoRows if the channel does not
-// exist, or the raw database error on failure without any translation or logging.
-func (s *SQLStore) updateChannel(ctx context.Context, namespace, resource string, info registry.ChannelInfo) (*registry.Channel, error) {
-	now := time.Now().Unix()
-
-	result, err := s.db.ExecContext(ctx, sqlChannelsUpdate, info.Description, info.Version, now, namespace, resource, info.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	if rows, _ := result.RowsAffected(); rows == 0 {
-		return nil, sql.ErrNoRows
-	}
-
-	// Return updated channel - need to query for created_at and version
-	// details. We could use a RETURNING clause, but the cost would be to lose
-	// compatibility with some databases, like MySQL.
-	return s.getChannel(ctx, namespace, resource, info.Name)
-}
-
-// Queries a channel by namespace, resource, and name from the database.
-//
-// Returns sql.ErrNoRows if the channel does not exist. Joins with the versions
-// table to include the full version details that the channel points to.
-func (s *SQLStore) getChannel(ctx context.Context, namespace, resource, channel string) (*registry.Channel, error) {
-	var c registry.Channel
-	var versionString string
-	var channelCreatedAt, channelUpdatedAt, versionCreatedAt, versionUpdatedAt int64
-	var digest, size, path sql.NullString
-
-	err := s.db.QueryRowContext(ctx, sqlChannelsGet, namespace, resource, channel).Scan(
-		&c.Name, &c.Description, &versionString, &channelCreatedAt, &channelUpdatedAt,
-		&versionCreatedAt, &versionUpdatedAt, &digest, &size, &path,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	c.Namespace = namespace
-	c.Resource = resource
-	c.CreatedAt = channelCreatedAt
-	c.UpdatedAt = channelUpdatedAt
-	c.Version = registry.Version{
-		Namespace: namespace, Resource: resource, String: versionString,
-		CreatedAt: versionCreatedAt, UpdatedAt: versionUpdatedAt,
-	}
-	if digest.Valid {
-		c.Version.Digest = &digest.String
-	}
-	return &c, nil
-}
-
-// Executes a DELETE statement for a channel.
-//
-// Returns the raw database error on failure without any translation or logging.
-func (s *SQLStore) deleteChannel(ctx context.Context, namespace, resource, channel string) error {
-	_, err := s.db.ExecContext(ctx, sqlChannelsDelete, namespace, resource, channel)
 	return err
 }
 
@@ -353,7 +280,7 @@ func (s *SQLStore) listResources(ctx context.Context, namespace string) ([]regis
 	for rows.Next() {
 		var rs registry.ResourceSummary
 		var latestVersion sql.NullString
-		if err := rows.Scan(&rs.Name, &rs.Type, &rs.Description, &rs.CreatedAt, &rs.UpdatedAt, &rs.VersionCount, &rs.ChannelCount, &latestVersion); err != nil {
+		if err := rows.Scan(&rs.Name, &rs.Type, &rs.Description, &rs.CreatedAt, &rs.UpdatedAt, &rs.VersionCount, &latestVersion); err != nil {
 			return nil, err
 		}
 		if latestVersion.Valid {
@@ -384,27 +311,6 @@ func (s *SQLStore) listVersions(ctx context.Context, namespace, resource string)
 		versions = append(versions, vs)
 	}
 	return versions, rows.Err()
-}
-
-// Queries all channels for a resource from the database.
-//
-// Returns the raw database error on failure without any translation or logging.
-func (s *SQLStore) listChannels(ctx context.Context, namespace, resource string) ([]registry.ChannelSummary, error) {
-	rows, err := s.db.QueryContext(ctx, sqlChannelsList, namespace, resource)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var channels []registry.ChannelSummary
-	for rows.Next() {
-		var cs registry.ChannelSummary
-		if err := rows.Scan(&cs.Name, &cs.Description, &cs.Version, &cs.CreatedAt, &cs.UpdatedAt); err != nil {
-			return nil, err
-		}
-		channels = append(channels, cs)
-	}
-	return channels, rows.Err()
 }
 
 // Executes an UPDATE statement to set archive metadata for a version.

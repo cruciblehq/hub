@@ -45,10 +45,10 @@ func (h *Handler) createResource(w http.ResponseWriter, r *http.Request) {
 	httpx.Write(w, registry.MediaTypeResource, registry.BodyFormat, http.StatusCreated, res)
 }
 
-// Retrieves resource metadata with version and channel summaries.
+// Retrieves resource metadata with version summaries.
 //
-// Returns resource information along with lightweight summaries of all versions
-// and channels. Returns an error if the namespace or resource does not exist.
+// Returns resource information along with lightweight summaries of all
+// versions. Returns an error if the namespace or resource does not exist.
 func (h *Handler) readResource(w http.ResponseWriter, r *http.Request) {
 	namespace := r.PathValue(registry.ParamNamespace)
 	resource := r.PathValue(registry.ParamResource)

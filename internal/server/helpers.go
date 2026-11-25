@@ -44,10 +44,12 @@ func (h *Handler) errorCodeToHTTPStatus(code registry.ErrorCode) int {
 	switch code {
 	case registry.ErrorCodeBadRequest:
 		return http.StatusBadRequest
+	case registry.ErrorCodeUnauthorized:
+		return http.StatusUnauthorized
 	case registry.ErrorCodeNotFound:
 		return http.StatusNotFound
 	case registry.ErrorCodeNamespaceExists, registry.ErrorCodeResourceExists,
-		registry.ErrorCodeVersionExists, registry.ErrorCodeVersionPublic, registry.ErrorCodeVersionSuperseded, registry.ErrorCodeChannelExists,
+		registry.ErrorCodeVersionExists, registry.ErrorCodeVersionPublic, registry.ErrorCodeVersionSuperseded,
 		registry.ErrorCodeNamespaceNotEmpty, registry.ErrorCodeResourceHasPublished,
 		registry.ErrorCodeVersionPublished:
 		return http.StatusConflict

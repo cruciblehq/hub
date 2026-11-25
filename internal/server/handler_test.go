@@ -35,11 +35,6 @@ package server
 // 	deleteVersionFn   func(ctx context.Context, namespace string, resource string, version string) error
 // 	uploadArchiveFn   func(ctx context.Context, namespace string, resource string, version string, archive io.Reader) (*registry.Version, error)
 // 	downloadArchiveFn func(ctx context.Context, namespace string, resource string, version string) (io.ReadCloser, error)
-// 	listChannelsFn    func(ctx context.Context, namespace string, resource string) (*registry.ChannelList, error)
-// 	createChannelFn   func(ctx context.Context, namespace string, resource string, info registry.ChannelInfo) (*registry.Channel, error)
-// 	readChannelFn     func(ctx context.Context, namespace string, resource string, channel string) (*registry.Channel, error)
-// 	updateChannelFn   func(ctx context.Context, namespace string, resource string, channel string, info registry.ChannelInfo) (*registry.Channel, error)
-// 	deleteChannelFn   func(ctx context.Context, namespace string, resource string, channel string) error
 // }
 
 // func (m *mockRegistry) ListNamespaces(ctx context.Context) (*registry.NamespaceList, error) {
@@ -159,41 +154,6 @@ package server
 // 		return m.downloadArchiveFn(ctx, namespace, resource, version)
 // 	}
 // 	return io.NopCloser(strings.NewReader("mock archive data")), nil
-// }
-
-// func (m *mockRegistry) ListChannels(ctx context.Context, namespace string, resource string) (*registry.ChannelList, error) {
-// 	if m.listChannelsFn != nil {
-// 		return m.listChannelsFn(ctx, namespace, resource)
-// 	}
-// 	return &registry.ChannelList{Channels: []registry.ChannelSummary{}}, nil
-// }
-
-// func (m *mockRegistry) CreateChannel(ctx context.Context, namespace string, resource string, info registry.ChannelInfo) (*registry.Channel, error) {
-// 	if m.createChannelFn != nil {
-// 		return m.createChannelFn(ctx, namespace, resource, info)
-// 	}
-// 	return &registry.Channel{Namespace: namespace, Resource: resource, Name: info.Name, Version: registry.Version{String: info.Version}}, nil
-// }
-
-// func (m *mockRegistry) ReadChannel(ctx context.Context, namespace string, resource string, channel string) (*registry.Channel, error) {
-// 	if m.readChannelFn != nil {
-// 		return m.readChannelFn(ctx, namespace, resource, channel)
-// 	}
-// 	return &registry.Channel{Namespace: namespace, Resource: resource, Name: channel}, nil
-// }
-
-// func (m *mockRegistry) UpdateChannel(ctx context.Context, namespace string, resource string, channel string, info registry.ChannelInfo) (*registry.Channel, error) {
-// 	if m.updateChannelFn != nil {
-// 		return m.updateChannelFn(ctx, namespace, resource, channel, info)
-// 	}
-// 	return &registry.Channel{Namespace: namespace, Resource: resource, Name: channel, Version: registry.Version{String: info.Version}, Description: info.Description}, nil
-// }
-
-// func (m *mockRegistry) DeleteChannel(ctx context.Context, namespace string, resource string, channel string) error {
-// 	if m.deleteChannelFn != nil {
-// 		return m.deleteChannelFn(ctx, namespace, resource, channel)
-// 	}
-// 	return nil
 // }
 
 // func TestContentNegotiationJSON(t *testing.T) {

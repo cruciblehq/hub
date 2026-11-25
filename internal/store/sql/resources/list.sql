@@ -9,11 +9,9 @@ SELECT
     resources.created_at,
     resources.updated_at,
     COUNT(DISTINCT versions.string) as version_count,
-    COUNT(DISTINCT channels.name) as channel_count,
     MAX(versions.string) as latest_version
 FROM resources
 LEFT JOIN versions ON versions.namespace = resources.namespace AND versions.resource = resources.name
-LEFT JOIN channels ON channels.namespace = resources.namespace AND channels.resource = resources.name
 WHERE resources.namespace = ?
 GROUP BY resources.name, resources.type, resources.description, resources.created_at, resources.updated_at
 ORDER BY resources.name;

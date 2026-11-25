@@ -30,16 +30,3 @@ CREATE TABLE IF NOT EXISTS versions (
     PRIMARY KEY (namespace, resource, string),
     FOREIGN KEY (namespace, resource) REFERENCES resources (namespace, name) ON DELETE RESTRICT
 );
-
-CREATE TABLE IF NOT EXISTS channels (
-    namespace   TEXT NOT NULL,        -- Parent namespace.
-    resource    TEXT NOT NULL,        -- Parent resource name.
-    name        TEXT NOT NULL,        -- Channel name.
-    description TEXT NOT NULL,        -- Description.
-    version     TEXT NOT NULL,        -- Version this channel points to.
-    created_at  INTEGER NOT NULL,     -- Unix timestamp when first cached.
-    updated_at  INTEGER NOT NULL,     -- Unix timestamp when last updated.
-    PRIMARY KEY (namespace, resource, name),
-    FOREIGN KEY (namespace, resource) REFERENCES resources (namespace, name) ON DELETE RESTRICT,
-    FOREIGN KEY (namespace, resource, version) REFERENCES versions (namespace, resource, string) ON DELETE RESTRICT
-);
